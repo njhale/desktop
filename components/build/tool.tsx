@@ -32,16 +32,16 @@ interface CustomToolProps {
 
 type Context = {
     data: Tool;
-    isChat: boolean; setIsChat: (isChat: boolean) => void;
-    name: string; setName: (name: string) => void;
-    prompt: string; setPrompt: (prompt: string) => void;
-    description: string; setDescription: (description: string) => void;
+    isChat: boolean | undefined; setIsChat: (isChat: boolean) => void;
+    name: string | undefined; setName: (name: string) => void;
+    prompt: string | undefined; setPrompt: (prompt: string) => void;
+    description: string | undefined; setDescription: (description: string) => void;
     temperature: number | undefined; setTemperature: (temperature: number) => void;
     params: Record<string, Property> | undefined; setParams: (params: Record<string, Property> | undefined) => void;
-    jsonResponse: boolean; setJsonResponse: (jsonResponse: boolean) => void;
+    jsonResponse: boolean | undefined; setJsonResponse: (jsonResponse: boolean) => void;
     internalPrompt: boolean | undefined; setInternalPrompt: (internalPrompt: boolean) => void;
-    modelName: string; setModelName: (modelName: string) => void;
-    maxTokens: number; setMaxTokens: (maxTokens: number) => void;
+    modelName: string | undefined; setModelName: (modelName: string) => void;
+    maxTokens: number | undefined; setMaxTokens: (maxTokens: number) => void;
     tools: string[]; setTools: (tools: string[]) => void;
     context: string[]; setContext: (context: string[]) => void;
 }
@@ -108,7 +108,9 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
             if (!incoming) {
                 incoming = `new-tool-${getId()}`
             }
-            updateName(data.name, incoming);
+            if (data.name != null) {
+                updateName(data.name, incoming);
+            }
         }
 
     }, [
@@ -155,7 +157,7 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
     const onRunClick = () => setChatPanel(
         <ToolContext.Provider value={toolContext}>
             <Card className="w-[35vw] 2xl:w-[30vw] 3xl:w-[25vw] h-[45vh] overflow-y-scroll">
-                <Chat chat={isChat} name={name} file={file} params={params}/>
+                <Chat chat={isChat ?? false} name={name ?? ''} file={file} params={params}/>
             </Card>
         </ToolContext.Provider>
     )
@@ -201,7 +203,7 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
                             className="nodrag nowheel cursor-text h-full w-full overflow-y-scroll resize-none"
                             placeholder="Tell the tool what do to..."
                             header={`Editing the prompt for ${name}`}
-                            defaultValue={prompt}
+                            defaultValue={prompt ?? ''}
                             setText={setPrompt}
                         />
                     </div>

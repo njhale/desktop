@@ -1,14 +1,15 @@
 "use client"
 
 import { useSearchParams } from 'next/navigation';
-import { useState } from 'react';
+import {Suspense, useState} from 'react';
 import Script from "@/components/script";
 import Threads from "@/components/threads";
 import { Thread } from '@/actions/threads';
 
-const Run = () => {
-    const [file, setFile] = useState<string>(useSearchParams().get('file') || '');
-    const [thread, setThread] = useState<string>(useSearchParams().get('thread') || '');
+
+function RunFile()  {
+    const [file, setFile] = useState<string>(useSearchParams().get('file') ?? '');
+    const [thread, setThread] = useState<string>(useSearchParams().get('thread') ?? '');
     const [threads, setThreads] = useState<Thread[]>([]);
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 
@@ -34,6 +35,12 @@ const Run = () => {
             </div>
         </div>
 	);
-};
+}
 
-export default Run;
+export default function Run() {
+    return (
+        <Suspense>
+            <RunFile />
+        </Suspense>
+    )
+}

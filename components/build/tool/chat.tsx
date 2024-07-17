@@ -84,6 +84,7 @@ export default function Chat({ name, file, params, chat }: ChatProps) {
 
     const handleMessageSent = (message: Message) => {
         if (!socket || !connected) return;
+        // @ts-ignore
         setMessages((prevMessages) => [...prevMessages, message]);
         socket.emit("userMessage", message.message);
     };

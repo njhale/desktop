@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Script from "@/components/script";
 import Configure from "@/components/edit/configure";
@@ -8,15 +8,15 @@ import { EditContextProvider } from "@/contexts/edit";
 import New from "@/components/edit/new";
 import ScriptNav from "@/components/edit/scriptNav";
 
-export default function Edit() {
-	const [file, setFile] = useState<string>(useSearchParams().get('file') || '');
+function EditFile() {
+	const [file, setFile] = useState<string>(useSearchParams().get('file') ?? '');
 
 	if (!file || file === 'new') return (
 		<div className="w-full h-full flex items-center justify-center align-center">
 			<div className="absolute left-2 top-2">
 				<ScriptNav />
 			</div>
-			<New 
+			<New
 				className="w-1/2"
 				setFile={setFile}
 			/>
@@ -36,4 +36,11 @@ export default function Edit() {
 			</div>
 		</EditContextProvider>
 	);
+}
+export default function Edit() {
+	return (
+		<Suspense>
+			<EditFile />
+		</Suspense>
+	)
 }
