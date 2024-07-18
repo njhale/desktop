@@ -1,13 +1,22 @@
 {
-    "name": "next-app-template",
-    "version": "0.0.1",
+    "name": "gptscript",
+    "author": {
+        "name": "Acorn Labs, Inc.",
+        "email": "info@acorn.io",
+        "url": "https://acorn.io"
+    },
     "private": true,
+    "version": "0.0.1",
+    "main": "electron/main.mjs",
     "scripts": {
         "dev": "node server.mjs",
-        "debug": "node --inspect server.mjs",
         "build": "next build --no-lint",
-        "start": "next start",
-        "lint": "next lint"
+        "start": "node server.mjs",
+        "lint": "next lint",
+        "build:electron": "next build --no-lint && node electron/build.mjs",
+        "pkg": "node electron/build.mjs",
+        "debug": "node --inspect server.mjs",
+        "server": "node server.mjs"
     },
     "dependencies": {
         "@gptscript-ai/gptscript": "^0.9.1",
@@ -32,8 +41,10 @@
         "autoprefixer": "10.4.19",
         "clsx": "^2.0.0",
         "dotenv": "^16.4.5",
+        "electron-serve": "^2.0.0",
         "eslint-config-next": "14.2.1",
         "framer-motion": "^11.1.1",
+        "get-port-please": "^3.1.2",
         "intl-messageformat": "^10.5.0",
         "lodash": "^4.17.21",
         "next": "14.2.1",
@@ -56,8 +67,9 @@
         "typescript": "5.0.4"
     },
     "devDependencies": {
-        "@typescript-eslint/eslint-plugin": "^7.16.1",
-        "@typescript-eslint/parser": "^7.16.1",
+        "concurrently": "^8.2.2",
+        "electron": "^31.2.1",
+        "electron-builder": "^24.13.3",
         "eslint": "^8.57.0"
     }
 }

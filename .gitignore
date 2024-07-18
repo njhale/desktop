@@ -15,6 +15,9 @@
 # production
 /build
 
+# electron
+/electron-dist
+
 # misc
 .DS_Store
 *.pem
@@ -37,8 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# app output
-gptscripts
-
-# ignore root level threads directory
+# app output directories
+/gptscripts
 /threads
