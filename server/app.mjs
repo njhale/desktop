@@ -1,13 +1,13 @@
-import { createServer } from "http";
+import {createServer} from "http";
 import next from "next";
-import  nextConfig  from "../next.config.js"
-import { Server } from "socket.io";
-import { GPTScript, RunEventType } from "@gptscript-ai/gptscript";
+import nextConfig from "../next.config.js"
+import {Server} from "socket.io";
+import {GPTScript, RunEventType} from "@gptscript-ai/gptscript";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
 
-dotenv.config({ path: ['../.env', '../.env.local'] });
+dotenv.config({path: ['../.env', '../.env.local']});
 
 const AGENT = 1;
 const USER = 2;
@@ -103,7 +103,8 @@ const mount = async (file, tool, args, workspace, socket, threadID, gptscript) =
             opts.chatState = state.chatState;
             socket.emit("loaded", state.messages);
         }
-    } catch (e) {}
+    } catch (e) {
+    }
 
     socket.on("interrupt", async () => {
         console.error("socket interrupted")
@@ -141,7 +142,7 @@ const mount = async (file, tool, args, workspace, socket, threadID, gptscript) =
                 if (!runningScript) return;
 
                 if (!state.messages) state.messages = [];
-                state.messages.push({ type: AGENT, message: output });
+                state.messages.push({type: AGENT, message: output});
                 state.chatState = runningScript.currentChatState();
 
                 if (threadID) {
@@ -194,8 +195,8 @@ const mount = async (file, tool, args, workspace, socket, threadID, gptscript) =
             .then((output) => {
                 if (!runningScript) return;
                 if (!state.messages) state.messages.push(
-                    { type: USER, message: message },
-                    { type: AGENT, message: output }
+                    {type: USER, message: message},
+                    {type: AGENT, message: output}
                 );
 
                 state.chatState = runningScript.currentChatState();

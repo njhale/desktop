@@ -1,7 +1,7 @@
-import { app, BrowserWindow } from "electron";
-import { getPort } from 'get-port-please'
-import { startAppServer } from '../server/app.mjs'
-import { join, dirname } from "path";
+import {app, BrowserWindow} from "electron";
+import {getPort} from 'get-port-please'
+import {startAppServer} from '../server/app.mjs'
+import {join, dirname} from "path";
 
 // const dir = dirname(dirname(dirname(fileURLToPath(import.meta.url))))
 const dir = dirname(app.getAppPath())
@@ -9,7 +9,7 @@ const dir = dirname(app.getAppPath())
 console.info('Server Dir', dir)
 
 app.on("ready", async () => {
-    if ( app.isPackaged ) {
+    if (app.isPackaged) {
         const port = await getPort({portRange: [30000, 40000]})
         const nextDir = app.getAppPath()
         console.log(`Starting app server for ${nextDir}`)
@@ -29,7 +29,7 @@ app.on("ready", async () => {
 });
 
 app.on("window-all-closed", () => {
-    if(process.platform !== "darwin"){
+    if (process.platform !== "darwin") {
         app.quit();
     }
 });

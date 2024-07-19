@@ -1,17 +1,17 @@
-import { useState, useEffect, memo, createContext, useContext, useCallback } from "react";
-import { FaCog, FaRunning } from "react-icons/fa";
-import { VscGrabber } from "react-icons/vsc";
-import { IoIosChatboxes } from "react-icons/io";
-import { Handle, Position } from "reactflow";
-import type { Tool, Property } from "@gptscript-ai/gptscript";
+import {useState, useEffect, memo, createContext, useContext, useCallback} from "react";
+import {FaCog, FaRunning} from "react-icons/fa";
+import {VscGrabber} from "react-icons/vsc";
+import {IoIosChatboxes} from "react-icons/io";
+import {Handle, Position} from "reactflow";
+import type {Tool, Property} from "@gptscript-ai/gptscript";
 import Config from "./tool/config";
-import { GraphContext } from "@/contexts/graph";
+import {GraphContext} from "@/contexts/graph";
 import Chat from "./tool/chat";
 import External from "./tool/config/external";
 import ParamsTable from "./tool/config/paramTable";
 import ModalTextArea from "./modalTextArea";
-import { debounce } from 'lodash';
-import { IsExternalTool } from "./tool/config/external";
+import {debounce} from 'lodash';
+import {IsExternalTool} from "./tool/config/external";
 import {
     Button,
     Card,
@@ -58,25 +58,25 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
     const [name, setName] = useState(data.name);
     const [prompt, setPrompt] = useState(data.instructions);
     const [isChat, setIsChat] = useState(data.chat);
-    const [params, setParams ] = useState<Record<string, Property> | undefined>(data.arguments?.properties);
+    const [params, setParams] = useState<Record<string, Property> | undefined>(data.arguments?.properties);
     const [tools, setTools] = useState(data.tools || []);
     const [context, setContext] = useState(data.context || []);
-    const { setChatPanel, setConfigPanel, file, getId } = useContext(GraphContext);
+    const {setChatPanel, setConfigPanel, file, getId} = useContext(GraphContext);
 
     const updateName = useCallback(debounce(async (previous: string, incoming: string) => {
         data.name = incoming;
-        await fetch(`/api/file/${file.replace('.gpt','')}/${previous}`, {
+        await fetch(`/api/file/${file.replace('.gpt', '')}/${previous}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(data),
         });
-    }, 1000),[file, data]);
+    }, 1000), [file, data]);
 
     useEffect(() => {
         const hasChanged = (
-            description !== data.description || 
-            temperature !== data.temperature || 
-            prompt !== data.instructions || 
+            description !== data.description ||
+            temperature !== data.temperature ||
+            prompt !== data.instructions ||
             isChat !== data.chat ||
             jsonResponse !== data.jsonResponse ||
             internalPrompt !== data.internalPrompt ||
@@ -96,14 +96,14 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
             data.internalPrompt = internalPrompt;
             data.modelName = modelName;
             data.maxTokens = maxTokens;
-            if (!data.arguments) data.arguments = { type: "object" };
+            if (!data.arguments) data.arguments = {type: "object"};
             data.context = context;
             data.tools = tools;
             data.arguments.properties = params;
             window.dispatchEvent(new Event("newNodeData"));
         }
 
-        if (data.name !== name){
+        if (data.name !== name) {
             let incoming = name
             if (!incoming) {
                 incoming = `new-tool-${getId()}`
@@ -149,7 +149,7 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
     const onConfigClick = () => setConfigPanel(
         <ToolContext.Provider value={toolContext}>
             <Card className="w-[35vw] 2xl:w-[30vw] 3xl:w-[25vw] h-[43vh] overflow-y-scroll">
-                <Config />
+                <Config/>
             </Card>
         </ToolContext.Provider>
     )
@@ -166,7 +166,7 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
         <Handle
             type="target"
             position={Position.Left}
-            style={{ background: "#555", width: "10px", height: "10px", zIndex: 999 }}
+            style={{background: "#555", width: "10px", height: "10px", zIndex: 999}}
             onConnect={(params) => console.log("handle onConnect", params)}
             isConnectable={isConnectable}
         />
@@ -180,20 +180,21 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
                 id="custom"
                 type="source"
                 position={Position.Right}
-                style={{ background: "#555", width: "10px", height: "10px", zIndex: 999}}
+                style={{background: "#555", width: "10px", height: "10px", zIndex: 999}}
                 isConnectable={isConnectable}
             />
         </Tooltip>
         <ToolContext.Provider value={toolContext}>
-            <Card className="w-[400px] p-4">         
-                <VscGrabber className="w-full" />
+            <Card className="w-[400px] p-4">
+                <VscGrabber className="w-full"/>
                 <CardHeader>
-                    <Button className="absolute top-2 left-4" radius="full" variant="light" startContent={<FaCog />} isIconOnly onPress={onConfigClick}/>
+                    <Button className="absolute top-2 left-4" radius="full" variant="light" startContent={<FaCog/>}
+                            isIconOnly onPress={onConfigClick}/>
                 </CardHeader>
                 <CardBody>
                     <div className="nodrag nowheel cursor-auto">
                         <input
-                            id= "name"
+                            id="name"
                             className="nodrag nowheel cursor-text text-2xl font-bold mb-4 mx-1 w-full dark:bg-zinc-900"
                             defaultValue={name}
                             placeholder="Give your tool a name..."
@@ -214,31 +215,32 @@ export default memo(({data, isConnectable}: CustomToolProps) => {
                                 <Button variant="bordered" className="w-full mt-6">Parameters</Button>
                             </PopoverTrigger>
                             <PopoverContent className="p-4 w-[500px]">
-                                <ParamsTable />
+                                <ParamsTable/>
                             </PopoverContent>
                         </Popover>
                     </Badge>
 
-                    <Badge color="primary" className="mt-6 right-1" content={tools ? tools.filter((tool) => IsExternalTool(tool)).length : 0}>
+                    <Badge color="primary" className="mt-6 right-1"
+                           content={tools ? tools.filter((tool) => IsExternalTool(tool)).length : 0}>
                         <Popover placement="bottom" showArrow>
                             <PopoverTrigger>
                                 <Button variant="bordered" className="w-full mt-6">External Tools</Button>
                             </PopoverTrigger>
                             <PopoverContent className="p-4 w-[500px]">
-                                <External />
+                                <External/>
                             </PopoverContent>
                         </Popover>
                     </Badge>
 
                 </CardBody>
                 <CardFooter>
-                    <Button 
-                        className="w-full" 
-                        onPress={onRunClick} 
+                    <Button
+                        className="w-full"
+                        onPress={onRunClick}
                         color={isChat ? 'primary' : 'secondary'}
-                        startContent={isChat ? <IoIosChatboxes /> : <FaRunning />}
+                        startContent={isChat ? <IoIosChatboxes/> : <FaRunning/>}
                     >
-                        { isChat ? 'Chat' : 'Run' }
+                        {isChat ? 'Chat' : 'Run'}
                     </Button>
                 </CardFooter>
             </Card>

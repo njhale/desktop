@@ -1,31 +1,31 @@
 "use client"
 
-import { useSearchParams } from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
 import {Suspense, useState} from 'react';
 import Script from "@/components/script";
 import Threads from "@/components/threads";
-import { Thread } from '@/actions/threads';
+import {Thread} from '@/actions/threads';
 
 
-function RunFile()  {
+function RunFile() {
     const [file, setFile] = useState<string>(useSearchParams().get('file') ?? '');
     const [thread, setThread] = useState<string>(useSearchParams().get('thread') ?? '');
     const [threads, setThreads] = useState<Thread[]>([]);
     const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
 
-	return (
+    return (
         <div className="w-full h-full flex pb-10">
-            <Threads 
+            <Threads
                 setThread={setThread}
                 setScript={setFile}
                 setThreads={setThreads}
                 threads={threads}
-                selectedThreadId={selectedThreadId} 
+                selectedThreadId={selectedThreadId}
                 setSelectedThreadId={setSelectedThreadId}
             />
             <div className="mx-auto w-1/2">
-			    <Script 
-                    enableThreads 
+                <Script
+                    enableThreads
                     className="pb-10"
                     file={file}
                     thread={thread}
@@ -34,13 +34,13 @@ function RunFile()  {
                 />
             </div>
         </div>
-	);
+    );
 }
 
 export default function Run() {
     return (
         <Suspense>
-            <RunFile />
+            <RunFile/>
         </Suspense>
     )
 }

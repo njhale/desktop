@@ -1,10 +1,10 @@
-import { startAppServer } from './server/app.mjs'
+import {startAppServer} from './server/app.mjs'
 import open from 'open';
 import dotenv from "dotenv";
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import {fileURLToPath} from 'url';
+import {dirname} from 'path';
 
-dotenv.config({ path: ['.env', '.env.local'] });
+dotenv.config({path: ['.env', '.env.local']});
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
