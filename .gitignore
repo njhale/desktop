@@ -14,6 +14,8 @@
 
 # production
 /build
+/electron-dist
+/binaries
 
 # misc
 .DS_Store

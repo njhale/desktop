@@ -7,11 +7,14 @@
     "url": "https://acorn.io"
   },
   "version": "0.0.1",
+  "main": "electron/main.mjs",
   "scripts": {
     "dev": "node server.mjs",
     "build": "next build --no-lint",
     "start": "node server.mjs",
     "lint": "next lint",
+    "build:electron": "NODE_ENV='production' next build --no-lint && NODE_ENV='production' node electron/build.mjs",
+    "pkg": "node electron/build.mjs",
     "debug": "node --inspect server.mjs",
     "server": "node server.mjs"
   },
@@ -63,6 +66,10 @@
     "typescript": "5.0.4"
   },
   "devDependencies": {
-    "eslint": "^8.57.0"
+    "@electron/notarize": "^2.3.2",
+    "electron": "^31.2.1",
+    "electron-builder": "^24.13.3",
+    "eslint": "^8.57.0",
+    "node-fetch": "^3.3.2"
   }
 }
