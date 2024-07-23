@@ -42,6 +42,7 @@ app.on("ready", async () => {
         process.env.GPTSCRIPT_BIN = join(dirname(nextDir), "binaries/gptscript-universal-apple-darwin")
         process.env.SCRIPTS_PATH = join(cacheDir, "scripts")
         process.env.THREADS_DIR = join(cacheDir, "threads")
+        process.env.GPTSCRIPT_WORKSPACE_DIR = join(cacheDir, "workspace")
 
         console.log(`Starting app server for ${nextDir} at ${process.env.GPTSCRIPT_BIN}`)
 
