@@ -107,7 +107,7 @@ const mount = async (location, tool, args, scriptWorkspace, socket, threadID, gp
     } else {
         script = location;
     }
-    
+
 
     const opts = {
         input: JSON.stringify(args || {}),
@@ -208,54 +208,17 @@ const mount = async (location, tool, args, scriptWorkspace, socket, threadID, gp
             }
         }
 
-        /*
-            note(tylerslaton)
-
-            this is a hacky way to add a tool to the chat state. When GPTScript does a run, it will
-            automatically map all of the needed tools. These maps will also be in the chatState object.
-            However, we cannot build these mappings unless we run the script.
-
-            Why do we need to do this? Because the chatState of the current script has all of the past
-            messages and tools used for this chat. As such, we need to merge the current tools/messages
-            with the new tool mappings for the added tool. If you're reading this and think its bad like
-            I do but have a better solution please please please throw a PR up.
-        */
         socket.emit("addingTool");
 
+        const loaded = await gptscript.loadTools(script, true);
+        const newTools = toChatStateTools(loaded?.program?.toolSet)
         const currentState = JSON.parse(state.chatState);
-
-        opts.chatState = undefined; // Clear the chat state so that we can get the new tool mappings
-        opts.input = 'do nothing'; // Ensure the LLM doesn't try to call tools without input
-        const newStateRun = await gptscript.evaluate(script, opts);
-
-        newStateRun.on(RunEventType.CallConfirm, (frame) => {
-            let response;
-            if (!frame.error && frame.toolCategory === "provider") {
-                // Auto-confirm gateway provider
-                response = {
-                    id: frame.id,
-                    accept: true,
-                };
-            } else {
-                // Deny all other tool run requests
-                response = {
-                    id: frame.id,
-                    accept: false,
-                    message: 'do nothing'
-                };
-            }
-
-            gptscript.confirm(response);
-        });
-
-        await newStateRun.text();
-        await newStateRun.close()
-
-        const newState = JSON.parse(newStateRun.currentChatState());
-        currentState.continuation.state.completion.tools = newState.continuation.state.completion.tools;
+        currentState.continuation.state.completion.tools = newTools;
 
         opts.chatState = JSON.stringify(currentState);
+        state.chatState = JSON.stringify(currentState);
         state.tools = [...new Set([...state.tools || [], tool])];
+
 
         if (threadID) {
             fs.writeFile(statePath, JSON.stringify(state), (err) => {
@@ -266,6 +229,7 @@ const mount = async (location, tool, args, scriptWorkspace, socket, threadID, gp
         }
 
         socket.emit("toolAdded", state.tools);
+
     });
 
     socket.on("removeTool", async (tool) => {
@@ -284,53 +248,15 @@ const mount = async (location, tool, args, scriptWorkspace, socket, threadID, gp
             }
         }
 
-        /*
-            note(tylerslaton)
-
-            this is a hacky way to remove a tool from the chat state. When GPTScript does a run, it will
-            automatically map all of the needed tools. These maps will also be in the chatState object.
-            However, we cannot build these mappings unless we run the script.
-
-            Why do we need to do this? Because the chatState of the current script has all of the past
-            messages and tools used for this chat. As such, we need to merge the current tools/messages
-            with the new tool mappings for the removed tool. If you're reading this and think its bad like
-            I do but have a better solution please please please throw a PR up.
-        */
         socket.emit("removingTool");
 
+        const loaded = await gptscript.loadTools(script, true);
+        const newTools = toChatStateTools(loaded?.program?.toolSet)
         const currentState = JSON.parse(state.chatState);
-
-        opts.chatState = undefined; // Clear the chat state so that we can get the new tool mappings
-        opts.input = 'do nothing'; // Ensure the LLM doesn't try to call tools without input
-        const newStateRun = await gptscript.evaluate(script, opts);
-
-        newStateRun.on(RunEventType.CallConfirm, (frame) => {
-            let response;
-            if (!frame.error && frame.toolCategory === "provider") {
-                // Auto-confirm gateway provider
-                response = {
-                    id: frame.id,
-                    accept: true,
-                };
-            } else {
-                // Deny all other tool run requests
-                response = {
-                    id: frame.id,
-                    accept: false,
-                    message: 'do nothing'
-                };
-            }
-
-            gptscript.confirm(response);
-        });
-
-        await newStateRun.text();
-        await newStateRun.close();
-
-        const newState = JSON.parse(newStateRun.currentChatState());
-        currentState.continuation.state.completion.tools = newState.continuation.state.completion.tools;
+        currentState.continuation.state.completion.tools = newTools;
 
         opts.chatState = JSON.stringify(currentState);
+        state.chatState = JSON.stringify(currentState);
         state.tools = state.tools.filter(t => t !== tool);
 
         if (threadID) {
@@ -364,6 +290,7 @@ const mount = async (location, tool, args, scriptWorkspace, socket, threadID, gp
             runningScript = runningScript.nextChat(message);
         }
 
+        
         runningScript.on(RunEventType.Event, (data) => socket.emit('progress', {
             frame: data,
             state: runningScript.calls
@@ -411,6 +338,88 @@ const dismount = (socket) => {
     socket.removeAllListeners("confirmResponse");
     socket.removeAllListeners("userMessage");
     socket.removeAllListeners("disconnect");
+}
+
+function pickToolName(toolName, existing) {
+    if (!toolName) {
+        toolName = "external";
+    }
+
+    let testName = toolNormalizer(toolName);
+    while (existing.has(testName)) {
+        testName += "0";
+    }
+    existing.add(testName);
+    return testName;
+}
+
+function toolNormalizer(tool) {
+    const invalidChars = /[^a-zA-Z0-9_]+/g;
+    const validToolName = /^[a-zA-Z0-9]{1,64}$/;
+
+    let parts = tool.split("/");
+    tool = parts[parts.length - 1];
+    if (tool.endsWith(".gpt")) {
+        tool = tool.slice(0, -4);
+    }
+    tool = tool.replace(/^sys\./, "");
+
+    if (validToolName.test(tool)) {
+        return tool;
+    }
+
+    if (tool.length > 55) {
+        tool = tool.slice(0, 55);
+    }
+
+    tool = tool.replace(invalidChars, "_");
+
+    let result = [];
+    let appended = false;
+    for (let part of tool.split("_")) {
+        let lower = part.toLowerCase();
+        if (appended && lower.length > 0) {
+            lower = lower.charAt(0).toUpperCase() + lower.slice(1);
+        }
+        if (lower) {
+            result.push(lower);
+            appended = true;
+        }
+    }
+
+    let final = result.join("");
+    return final || "tool";
+}
+
+function toChatStateTools(toolSet) {
+    const toolNames = new Set();
+
+    return Object.entries(toolSet)
+        .filter(([key]) => !key.startsWith("inline:"))
+        .map(([key, tool]) => {
+            let toolName = tool.name || key;
+            toolName = pickToolName(toolName, toolNames);
+
+            let args = tool.arguments;
+            if (!args) {
+                args = {}; // Default to an empty object if no arguments are provided
+            }
+
+            if (!tool.instructions) {
+                console.debug(`Skipping zero instruction tool ${toolName} (${key})`);
+                return null;
+            }
+
+            return {
+                function: {
+                    toolID: key,
+                    name: toolName,
+                    description: tool.description,
+                    parameters: args,
+                }
+            };
+        })
+        .filter(tool => tool !== null);
 }
 
 const initGPTScriptConfig = async (gptscript) => {
