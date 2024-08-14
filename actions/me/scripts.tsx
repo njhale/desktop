@@ -65,7 +65,7 @@ export async function getScripts(query?: ScriptsQuery): Promise<ParsedScriptsQue
 
     let parsedScripts: ParsedScript[] = [];
     for (const script of scripts.scripts || []) {
-        const parsedScript = await gpt().parseTool(script.content || '');
+        const parsedScript = await gpt().parseContent(script.content || '');
 
         parsedScripts.push({ ...script,
             script: parsedScript,
@@ -81,7 +81,7 @@ export async function getScripts(query?: ScriptsQuery): Promise<ParsedScriptsQue
 export async function getScript(id: string): Promise<ParsedScript | undefined> {
     try {
         const scripts = await get("scripts", id.replace(`${GATEWAY_URL()}/`, '')) as Script
-        const parsedScript = await gpt().parseTool(scripts.content || '')
+        const parsedScript = await gpt().parseContent(scripts.content || '')
         return {
             ...scripts,
             script: parsedScript,
