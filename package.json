@@ -42,6 +42,7 @@
     "@types/react": "18.2.21",
     "@types/react-dom": "18.2.7",
     "autoprefixer": "10.4.19",
+    "chalk": "^5.3.0",
     "clsx": "^2.0.0",
     "dotenv": "^16.4.5",
     "eslint-config-next": "14.2.1",
@@ -67,7 +68,9 @@
     "tailwind-variants": "^0.1.20",
     "tailwindcss": "3.4.3",
     "typescript": "5.0.4",
-    "use-file-picker": "^2.1.2"
+    "use-file-picker": "^2.1.2",
+    "winston": "^3.14.2",
+    "winston-daily-rotate-file": "^5.0.0"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^8.1.0",

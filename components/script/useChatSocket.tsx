@@ -45,6 +45,7 @@ const useChatSocket = (isEmpty?: boolean) => {
     setGenerating(false);
     setError(error);
     setMessages((prevMessages) => {
+      console.warn(`we're setting messages!`)
       const updatedMessages = [...prevMessages];
       if (latestAgentMessageIndex.current !== -1) {
         // Append the error to the latest message
@@ -71,6 +72,7 @@ const useChatSocket = (isEmpty?: boolean) => {
       frame: CallFrame;
       state: Record<string, CallFrame>;
     }) => {
+      console.log(`here's some progress!`)
       if (!frame.error && frame.toolCategory === 'provider') {
         return;
       }

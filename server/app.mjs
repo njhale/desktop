@@ -1,4 +1,4 @@
-import { createServer } from 'http';
+import { createServer } from 'node:http';
 import next from 'next';
 import nextConfig from '../next.config.js';
 import { Server } from 'socket.io';
@@ -23,7 +23,7 @@ export const startAppServer = ({ dev, hostname, port, dir }) => {
 
   return new Promise((resolve, reject) => {
     if (serverRunning) {
-      console.log(`server already running at ${address}`);
+      console.log(`Server already running at ${address}`);
       return resolve(address);
     }
 
@@ -34,6 +34,7 @@ export const startAppServer = ({ dev, hostname, port, dir }) => {
       conf: nextConfig,
       dir: dir,
       customServer: true,
+      quiet: false,
     });
     const handler = app.getRequestHandler();
 
@@ -66,7 +67,21 @@ export const startAppServer = ({ dev, hostname, port, dir }) => {
       app
         .prepare()
         .then(() => {
-          const httpServer = createServer(handler);
+          const httpServer = createServer((req, res) => {
+            // Log the request details
+            console.debug(`${req.method} ${req.url}`)
+
+            handler(req, res)
+                .catch((err) => {
+                  console.error(`Error handling request:`, err);
+
+                  if (!res.headersSent) {
+                    res.statusCode = 500;
+                    res.end('Internal Server Error');
+                  }
+                });
+
+          });
           const io = new Server(httpServer);
 
           io.on('connection', (socket) => {

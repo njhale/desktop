@@ -1,79 +1,45 @@
-import { app, BrowserWindow } from 'electron';
-import { getPort } from 'get-port-please';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { startAppServer } from '../server/app.mjs';
 import { join, dirname } from 'path';
-import { existsSync, mkdirSync, writeFileSync } from 'fs';
-import fixPath from 'fix-path';
+import { configure } from './config.mjs'
 import os from 'os';
+app.on('window-all-closed', () => app.quit());
+app.on('ready', () => {
+     startServer().catch((err) => {
+       console.error(err);
+       process.exit(1);
+     })
+});
 
-const appName = 'Acorn';
-const gatewayUrl =
-  process.env.GPTSCRIPT_GATEWAY_URL || 'https://gateway-api.gptscript.ai';
-const resourcesDir = dirname(app.getAppPath());
-const dataDir = getDataDir(appName);
+async function startServer() {
+    const {dev, dir, port, logger} = await configure()
 
-function getDataDir(appName) {
-  const userDataPath = app.getPath('userData');
-  return join(userDataPath, appName);
-}
+    // Forward renderer logs to custom logger
+    ipcMain.on('log', (event, level, message) => {
+        console[level](message);
+    });
 
-function ensureDirExists(dir) {
-  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-}
-
-async function startServer(isPackaged) {
-  const port = isPackaged ? await getPort({ portRange: [30000, 40000] }) : process.env.PORT || 3000;
-  const gptscriptBin = join(
-    isPackaged ? join(resourcesDir, 'app.asar.unpacked') : '',
-    'node_modules',
-    '@gptscript-ai',
-    'gptscript',
-    'bin',
-    `gptscript${process.platform === 'win32' ? '.exe' : ''}`
-  );
-
-  process.env.GPTSCRIPT_BIN = process.env.GPTSCRIPT_BIN || gptscriptBin;
-  process.env.THREADS_DIR = process.env.THREADS_DIR || join(dataDir, 'threads');
-  process.env.WORKSPACE_DIR =
-    process.env.WORKSPACE_DIR || join(dataDir, 'workspace');
-  process.env.GPTSCRIPT_GATEWAY_URL =
-    process.env.GPTSCRIPT_GATEWAY_URL || gatewayUrl;
-
-  console.log(
-    `Starting app server with GPTSCRIPT_BIN="${process.env.GPTSCRIPT_BIN}"`
-  );
-
-  // Set up the browser tool to run in headless mode.
-  ensureDirExists(process.env.WORKSPACE_DIR);
-  writeFileSync(
-    `${process.env.WORKSPACE_DIR}/browsersettings.json`,
-    JSON.stringify({ headless: true })
-  );
-
-  try {
     const url = await startAppServer({
-      dev: !isPackaged,
+      dev,
       hostname: 'localhost',
       port,
-      dir: app.getAppPath(),
+      dir,
     });
-    console.log(`> ${isPackaged ? '' : 'Dev '}Electron app started at ${url}`);
-    createWindow(url);
-  } catch (err) {
-    console.error(err);
-    process.exit(1);
-  }
+    await createWindow(url, dir);
+
+    console.log(`> ${!dev ? '' : 'Dev '}Electron app started at ${url}`);
 }
 
-function createWindow(url) {
+async function createWindow(url, dir) {
   const isMac = os.platform() === 'darwin';
   const win = new BrowserWindow({
     width: 1024,
     height: 720,
-    frame: isMac ? false : true, // Use frame: true for Windows and Linux
+    frame: !isMac, // Use frame: true for Windows and Linux
     webPreferences: {
-      preload: join(app.getAppPath(), 'electron/preload.js'),
+      preload: join(dir, 'electron', 'preload.js'),
       nodeIntegration: true,
+      spellcheck: false,
       allowRunningInsecureContent: true,
       webSecurity: false,
       disableBlinkFeatures: 'Autofill',
@@ -85,16 +51,10 @@ function createWindow(url) {
     win.setWindowButtonVisibility(true);
   }
 
-  win.loadURL(url);
+  await win.loadURL(url);
+
   win.webContents.on('did-fail-load', () =>
     win.webContents.reloadIgnoringCache()
   );
 }
 
-app.on('ready', () => {
-  fixPath();
-  ensureDirExists(dataDir);
-  startServer(app.isPackaged);
-});
-
-app.on('window-all-closed', () => app.quit());

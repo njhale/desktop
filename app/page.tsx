@@ -21,6 +21,7 @@ function RunFile() {
 
   useEffect(() => setCurrent('/'), []);
 
+
   return (
     <ScriptContextProvider
       initialScript={script}

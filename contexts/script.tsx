@@ -109,6 +109,8 @@ const ScriptContextProvider: React.FC<ScriptContextProps> = ({
   } = useChatSocket(isEmpty);
   const [scriptDisplayName, setScriptDisplayName] = useState<string>('');
 
+  throw new Error('This is my special error');
+
   // need to initialize the workspace from the env variable with serves
   // as the default.
   useEffect(() => {
