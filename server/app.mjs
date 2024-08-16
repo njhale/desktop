@@ -23,7 +23,7 @@ export const startAppServer = ({ dev, hostname, port, dir }) => {
 
   return new Promise((resolve, reject) => {
     if (serverRunning) {
-      console.log(`server already running at ${address}`);
+      console.log(`Server already running at ${address}`);
       return resolve(address);
     }
 
@@ -34,6 +34,7 @@ export const startAppServer = ({ dev, hostname, port, dir }) => {
       conf: nextConfig,
       dir: dir,
       customServer: true,
+      quiet: false,
     });
     const handler = app.getRequestHandler();
 

@@ -118,6 +118,7 @@ const Script: React.FC<ScriptProps> = ({
       { type: MessageType.User, message },
     ]);
     socket.emit('userMessage', message, threadId);
+    console.log(`this is a user message!`)
 
     if (hasNoUserMessages() && thread) {
       renameThread(thread, await generateThreadName(message));

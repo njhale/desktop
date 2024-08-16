@@ -7,6 +7,13 @@ import Threads from '@/components/threads';
 import { ScriptContextProvider } from '@/contexts/script';
 import { NavContext } from '@/contexts/nav';
 
+// Check if window is defined (i.e., we are in the browser)
+if (typeof window !== 'undefined' && window.overrideConsole) {
+  window.overrideConsole();  // Safely call the method
+}
+
+console.log('we have to be good now!')
+
 function RunFile() {
   const [script, _setScript] = useState<string>(
     useSearchParams().get('file') ?? 'github.com/gptscript-ai/ui-assistant'
@@ -20,6 +27,7 @@ function RunFile() {
   const { setCurrent } = useContext(NavContext);
 
   useEffect(() => setCurrent('/'), []);
+
 
   return (
     <ScriptContextProvider

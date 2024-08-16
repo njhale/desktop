@@ -10,6 +10,13 @@ import { Message, MessageType } from './messages';
 import PromptForm from './messages/promptForm';
 import ConfirmForm from './messages/confirmForm';
 
+// Check if window is defined (i.e., we are in the browser)
+if (typeof window !== 'undefined' && window.overrideConsole) {
+  window.overrideConsole();  // Safely call the method
+}
+
+console.log('bloop!')
+
 const useChatSocket = (isEmpty?: boolean) => {
   // State
   const [socket, setSocket] = useState<Socket | null>(null);
@@ -45,6 +52,7 @@ const useChatSocket = (isEmpty?: boolean) => {
     setGenerating(false);
     setError(error);
     setMessages((prevMessages) => {
+      console.warn(`we're setting messages!`)
       const updatedMessages = [...prevMessages];
       if (latestAgentMessageIndex.current !== -1) {
         // Append the error to the latest message
@@ -71,6 +79,7 @@ const useChatSocket = (isEmpty?: boolean) => {
       frame: CallFrame;
       state: Record<string, CallFrame>;
     }) => {
+      console.log(`here's some progress!`)
       if (!frame.error && frame.toolCategory === 'provider') {
         return;
       }
