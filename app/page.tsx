@@ -2,9 +2,9 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useContext, useEffect, useState } from 'react';
-import Script from '@/components/script';
+import Chat from '@/components/chat';
 import Threads from '@/components/threads';
-import { ScriptContextProvider } from '@/contexts/script';
+import { ChatContextProvider } from '@/contexts/chat';
 import { NavContext } from '@/contexts/nav';
 import { tildy } from '@/config/assistant';
 
@@ -21,7 +21,7 @@ function RunFile() {
   useEffect(() => setCurrent('/'), []);
 
   return (
-    <ScriptContextProvider
+    <ChatContextProvider
       initialScript={script}
       initialScriptId={scriptId}
       enableThread={true}
@@ -33,11 +33,11 @@ function RunFile() {
         >
           <div className="w-full h-full flex pb-10">
             <Threads />
-            <Script enableThreads showAssistantName className="pb-10" />
+            <Chat showAssistantName className="pb-10" />
           </div>
         </div>
       </section>
-    </ScriptContextProvider>
+    </ChatContextProvider>
   );
 }
 

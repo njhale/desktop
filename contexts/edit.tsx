@@ -32,6 +32,8 @@ interface EditContextState {
   setLoading: (loading: boolean) => void;
   notFound: boolean;
   setNotFound: (notFound: boolean) => void;
+  // updated: boolean;
+  // setUpdated: (updated: boolean) => void;
   root: Tool;
   dependencies: DependencyBlock[];
   setDependencies: React.Dispatch<React.SetStateAction<DependencyBlock[]>>;
@@ -68,6 +70,8 @@ const EditContextProvider: React.FC<EditContextProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  // const [initialized, setInitialized] = useState(false);
+  // const [updated, setUpdated] = useState(false);
   const [root, setRoot] = useState<Tool>({} as Tool);
   const [tools, setTools] = useState<Tool[]>([]);
   const [script, setScript] = useState<Block[]>([]);
@@ -86,6 +90,7 @@ const EditContextProvider: React.FC<EditContextProps> = ({
   // Dependencies are special text tools that reference a tool, type, and content. They are used
   // to store requirements.txt and package.json files for the script.
   const [dependencies, setDependencies] = useState<DependencyBlock[]>([]);
+
 
   useEffect(() => {
     getModels().then((m) => {
@@ -127,7 +132,10 @@ const EditContextProvider: React.FC<EditContextProps> = ({
         );
       })
       .catch((error) => console.error(error))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false)
+        // setInitialized(true);
+      });
   }, []);
 
   useEffect(() => {
@@ -199,9 +207,14 @@ const EditContextProvider: React.FC<EditContextProps> = ({
   //       lodash debounce function was not used because it was causing issues.
   //       It is also worth noting that this deletes text tools.
   const update = useCallback(async () => {
+    // console.log(`updating: ${scriptId}, tools: ${tools}, initialized: ${initialized}`);
+    // if (!initialized) return;
     if (debounceTimer.current) clearTimeout(debounceTimer.current);
     debounceTimer.current = setTimeout(async () => {
       if (scriptId && visibility && root) {
+        // // Mark the assistant as being updated
+        // setUpdated(true);
+
         const existing = await getScript(scriptId.toString());
         const toUpdate: Script = {
           visibility: visibility,
@@ -218,7 +231,13 @@ const EditContextProvider: React.FC<EditContextProps> = ({
         } else {
           toUpdate.slug = existing?.slug;
         }
-        await updateScript(toUpdate).catch((error) => console.error(error));
+
+        await updateScript(toUpdate).catch((error) => {
+          // // The update failed so unmark the assistant
+          // setUpdated(false);
+
+          console.error(error);
+        });
       }
     }, DEBOUNCE_TIME);
   }, [scriptId, root, tools, visibility]);
@@ -285,6 +304,8 @@ const EditContextProvider: React.FC<EditContextProps> = ({
         setLoading,
         notFound,
         setNotFound,
+        // updated,
+        // setUpdated,
         root,
         setRoot,
         tools,
