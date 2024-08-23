@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, Suspense, useContext } from 'react';
+import { useEffect, useState, Suspense, useContext, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Configure from '@/components/edit/configure';
 import { EditContextProvider } from '@/contexts/edit';
@@ -10,15 +10,17 @@ import ScriptNav from '@/components/edit/scriptNav';
 import { NavContext } from '@/contexts/nav';
 
 function EditFile() {
-  const [file, setFile] = useState<string>(useSearchParams().get('file') || '');
-  const [scriptId] = useState<string>(useSearchParams().get('id') || '');
+  const searchParams = useSearchParams();
+  const [file, setFile] = useState<string>(searchParams.get('file') || '');
+  const [scriptId] = useState<string>(searchParams.get('id') || '');
   const [collapsed, setCollapsed] = useState(false);
 
   const { setCurrent } = useContext(NavContext);
-  useEffect(() => setCurrent('/build'), []);
+
+  useEffect(() => setCurrent('/build'), [setCurrent]);
 
   return !file || file === 'new' ? (
-    <div className="w-full h-full flex items-center justify-center align-center">
+    <div className="w-full h-full flex items-center justify-center">
       <div className="absolute left-2 top-2">
         <ScriptNav collapsed={collapsed} setCollapsed={setCollapsed} />
       </div>
@@ -46,7 +48,7 @@ function EditFile() {
 
 export default function Edit() {
   return (
-    <Suspense>
+    <Suspense fallback={<div>Loading...</div>}>
       <EditFile />
     </Suspense>
   );

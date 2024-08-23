@@ -1,4 +1,4 @@
-import { app, shell, screen, BrowserWindow } from 'electron';
+import { app, screen, shell, dialog, BrowserWindow } from 'electron';
 import { startAppServer } from '../server/app.mjs';
 import { join } from 'path';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
@@ -24,6 +24,7 @@ async function startServer() {
   );
 
   // Project config onto environment variables to configure GPTScript/sdk-server and the Next.js app.
+  process.env.LOGS_DIR = config.logsDir;
   process.env.GPTSCRIPT_BIN = config.gptscriptBin;
   process.env.THREADS_DIR = config.threadsDir;
   process.env.WORKSPACE_DIR = config.workspaceDir;
@@ -88,6 +89,43 @@ function createWindow(url) {
     // Allow navigation for internal URLs
     return { action: 'allow' };
   });
+
+  // Open platform-native dialog for file downloads
+  win.webContents.session.on(
+    'will-download',
+    async (event, item, webContents) => {
+      // Open a "Save As" dialog for the user to choose the save location
+      const { filePath } = await dialog.showSaveDialog({
+        title: 'Save file',
+        defaultPath: join(app.getPath('downloads'), item.getFilename()), // Suggest a default filename
+        buttonLabel: 'Save',
+      });
+
+      if (filePath) {
+        // If the user selects a location, set the file's save path
+        item.setSavePath(filePath);
+
+        item.on('updated', (event, state) => {
+          if (state === 'progressing' && !item.isPaused()) {
+            console.log(
+              `Download progress: ${item.getReceivedBytes()} / ${item.getTotalBytes()}`
+            );
+          }
+        });
+
+        item.once('done', (event, state) => {
+          if (state === 'completed') {
+            console.log('Download complete:', filePath);
+          } else {
+            console.log('Download failed:', state);
+          }
+        });
+      } else {
+        // If the user cancels the dialog, cancel the download
+        item.cancel();
+      }
+    }
+  );
 }
 
 function ensureDirExists(dir) {
