@@ -18,6 +18,21 @@ let serverRunning = false;
 let gptscriptInitialized = false;
 let gptscriptInitPromise = null;
 
+const CHUNK_SIZE = 1024;
+function chunkData(data) {
+  const chunks = [];
+  console.log(`chunkData: ${data}`)
+  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+    chunks.push(data.slice(i, i + CHUNK_SIZE));
+  }
+  return chunks;
+}
+
+function reassembleChunks(chunks) {
+  console.log(`reassembling chunks: ${chunks}`)
+  return chunks.join('');
+}
+
 export const startAppServer = ({ dev, hostname, port, appDir }) => {
   const address = `http://${hostname}:${port ?? 3000}`;
 
@@ -69,8 +84,68 @@ export const startAppServer = ({ dev, hostname, port, appDir }) => {
           const httpServer = createServer(handler);
           const io = new Server(httpServer);
 
+          // Store chunks for reassembly
+          const receivedChunks = {};
+
           io.on('connection', (socket) => {
+            // Wrap emit to handle chunked data
+            const originalEmit = socket.emit.bind(socket);
+            socket.emit = (event, data) => {
+              const isObject = typeof data !== 'string';
+              const dataToSend = isObject ? JSON.stringify(data) : data;
+
+              if (dataToSend?.length > CHUNK_SIZE) {
+                const chunks = chunkData(dataToSend);
+                chunks.forEach((chunk, index) => {
+                  console.log(`chunks.forEach => ${index}, ${JSON.stringify(chunk, null, 2)}`)
+                  originalEmit(event, { chunk, index, total: chunks.length, isObject });
+                });
+              } else {
+                originalEmit(event, { data: dataToSend, isObject });
+              }
+            };
+
+            // Wrap on to handle reassembly and non-chunked data
+            const originalOn = socket.on.bind(socket);
+            socket.on = (event, callback) => {
+              originalOn(event, (data) => {
+                console.log(`received ${event}, ${JSON.stringify(data, null, 2)}`)
+                if (data === undefined || typeof data !== 'object') {
+                  return callback(data); // Handle non-chunked events
+                }
+
+                const { chunk, index, total, isObject } = data || {};
+
+                if (chunk !== undefined && index !== undefined && total !== undefined) {
+                  if (!receivedChunks[event]) {
+                    receivedChunks[event] = [];
+                  }
+                  receivedChunks[event][index] = chunk;
+
+                  const receivedLength = receivedChunks[event].filter(Boolean).length;
+                  console.log(`receivedLength: ${receivedLength}`)
+                  if (receivedLength === total) {
+                    let reassembledData = reassembleChunks(receivedChunks[event]);
+
+                    if (isObject) {
+                      try {
+                        reassembledData = JSON.parse(reassembledData);
+                      } catch (e) {
+                        console.error('Failed to parse reassembled data:', e);
+                      }
+                    }
+
+                    callback(reassembledData);
+                    delete receivedChunks[event];
+                  }
+                } else {
+                  callback(data); // Pass through for non-chunked data
+                }
+              });
+            };
+
             io.emit('message', 'connected');
+
             socket.on(
               'run',
               async (
@@ -87,6 +162,7 @@ export const startAppServer = ({ dev, hostname, port, appDir }) => {
                 }
                 try {
                   dismount(socket);
+                  console.log(`mounting(${JSON.stringify(location, null, 2)})...`);
                   await mount(
                     location,
                     tool,
@@ -98,6 +174,7 @@ export const startAppServer = ({ dev, hostname, port, appDir }) => {
                     gptscript
                   );
                 } catch (e) {
+                  console.log(`emitting error: ${e.toString()}`);
                   socket.emit('error', e.toString());
                 }
               }
@@ -131,6 +208,7 @@ const mount = async (
   scriptID,
   gptscript
 ) => {
+  console.log('mount called!');
   const WORKSPACE_DIR =
     process.env.WORKSPACE_DIR ?? process.env.GPTSCRIPT_WORKSPACE_DIR;
   const THREADS_DIR =
@@ -138,7 +216,9 @@ const mount = async (
 
   let script;
   if (typeof location === 'string') {
+    console.log('parse!', JSON.stringify(location, null, 2));
     script = await gptscript.parse(location, true);
+    console.log('finished parsing!');
   } else {
     script = location;
   }
@@ -209,7 +289,10 @@ const mount = async (
     runningScript = null;
   });
 
+  console.log('hello!');
+
   if (!threadID || !state.chatState) {
+    console.log('evaluating!');
     runningScript = await gptscript.evaluate(script, opts);
     socket.emit('running');
 
@@ -261,6 +344,7 @@ const mount = async (
         }
       })
       .catch((e) => {
+        console.log('failure on run!');
         if (e) {
           if (e.toString() === 'Error: Run has been aborted') {
             socket.emit('interrupted');
@@ -430,6 +514,7 @@ const mount = async (
         }
       })
       .catch((e) => {
+        console.log('failure on second run!');
         if (e) {
           if (e.toString() === 'Error: Run has been aborted') {
             socket.emit('interrupted');

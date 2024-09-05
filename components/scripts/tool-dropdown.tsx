@@ -30,6 +30,7 @@ const ScriptToolsDropdown = () => {
   useEffect(() => {
     const threadTools: string[] = [];
     for (const tool of tools) {
+      console.log(`loading tool: ${tool}`);
       if (tool !== knowledgeGatewayTool) {
         threadTools.push(tool);
         if (!displayNames[tool]) {

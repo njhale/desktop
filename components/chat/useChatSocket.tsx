@@ -17,6 +17,20 @@ import { rootTool, stringify } from '@/actions/gptscript';
 import { updateScript } from '@/actions/me/scripts';
 import { gatewayTool } from '@/actions/knowledge/util';
 
+const CHUNK_SIZE = 1024;
+
+function chunkData(data: string): string[] {
+  const chunks: string[] = [];
+  for (let i = 0; i < data.length; i += CHUNK_SIZE) {
+    chunks.push(data.slice(i, i + CHUNK_SIZE));
+  }
+  return chunks;
+}
+
+function reassembleChunks(chunks: string[]): string {
+  return chunks.join('');
+}
+
 const useChatSocket = (isEmpty?: boolean) => {
   const initiallyTrustedRepos = [
     'github.com/gptscript-ai/context',
@@ -346,8 +360,74 @@ const useChatSocket = (isEmpty?: boolean) => {
         };
   };
 
+  // Store chunks for reassembly
+  const receivedChunks = useRef<Record<string, string[]>>({});
+
   const loadSocket = () => {
     const socket = io();
+
+    // Wrap emit to only chunk data for specific events
+    const originalEmit = socket.emit.bind(socket);
+    socket.emit = (event: string, data: any) => {
+      if (event === 'run' || event === 'userMessage') {
+        const isObject = typeof data === 'object';
+        const dataString = isObject ? JSON.stringify(data) : data;
+
+        if (dataString?.length > CHUNK_SIZE) {
+          const chunks = chunkData(dataString);
+          chunks.forEach((chunk, index) => {
+            originalEmit(event, { chunk, index, total: chunks.length, isObject });
+          });
+        } else {
+          originalEmit(event, { data: dataString, isObject });
+        }
+      } else {
+        originalEmit(event, data);
+      }
+
+      return socket;
+    };
+
+    // Wrap on to handle chunked and non-chunked data
+    const originalOn = socket.on.bind(socket);
+    socket.on = (event: string, callback: (...args: any[]) => void): Socket => {
+      originalOn(event, (data: any) => {
+        if (data === undefined || typeof data !== 'object') {
+          return callback(data); // Pass through for non-chunked data
+        }
+
+        const { chunk, index, total, isObject } = data || {};
+
+        // Handle chunked data
+        if (chunk !== undefined && index !== undefined && total !== undefined) {
+          if (!receivedChunks.current[event]) {
+            receivedChunks.current[event] = [];
+          }
+          receivedChunks.current[event][index] = chunk;
+
+          const receivedLength = receivedChunks.current[event].filter(Boolean).length;
+          if (receivedLength === total) {
+            let reassembledData = reassembleChunks(receivedChunks.current[event]);
+            if (isObject) {
+              try {
+                reassembledData = JSON.parse(reassembledData);
+              } catch (e) {
+                console.error('Failed to parse reassembled data');
+              }
+            }
+            callback(reassembledData);
+            delete receivedChunks.current[event];
+          }
+        } else if (data?.data !== undefined) {
+          const finalData = isObject ? JSON.parse(data.data) : data.data;
+          callback(finalData);
+        } else {
+          callback(data); // Handle non-chunked data
+        }
+      });
+
+      return socket;
+    };
 
     socket.off('connect');
     socket.off('disconnect');
